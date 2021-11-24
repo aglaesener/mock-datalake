@@ -1,18 +1,17 @@
 version: "3.8"
 services:
   db:
-    image: mock-datalake-db:1.0
+    image: andreaglaesener/mock-datalake-db:1.0
     hostname: mock-datalake-db
     volumes:
       - pgdata:/var/lib/postgresql/data
     ports:
       - '5432:5432'
   api:
-    image: mock-datalake-api:1.0
+    image: andreaglaesener/mock-datalake-api:1.0
     hostname: mock-datalake-api
     depends_on:
       - db
-    # command: ["./wait-for-it.sh", "db:5432", "--", "node", "index.js"]
     ports:
       - '5000:5000'
 
