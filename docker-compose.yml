@@ -2,6 +2,7 @@ version: "3.8"
 services:
   db:
     image: andreaglaesener/mock-datalake-db:1.0
+    container_name: medas-datalake-db
     hostname: mock-datalake-db
     volumes:
       - pgdata:/var/lib/postgresql/data
@@ -9,6 +10,7 @@ services:
       - '5432:5432'
   api:
     image: andreaglaesener/mock-datalake-api:1.0
+    container_name: medas-datalake-api
     hostname: mock-datalake-api
     depends_on:
       - db
