@@ -9,7 +9,7 @@ services:
     ports:
       - '5432:5432'
   api:
-    image: andreaglaesener/mock-datalake-api:1.0
+    image: andreaglaesener/mock-datalake-api:1.1
     container_name: medas-datalake-api
     hostname: mock-datalake-api
     depends_on:

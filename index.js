@@ -1,6 +1,13 @@
 const express = require("express");
 const app = express();
 
+const basicAuth = require('express-basic-auth');
+ 
+app.use(basicAuth({
+    users: { lakeuser: 'sys' },
+    challenge: true // <--- needed to actually show the login dialog!
+}));
+
 // Connection pool basato su db.js:
 const pool = require("./db");
 
