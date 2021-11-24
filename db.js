@@ -1,10 +1,10 @@
 const Pool = require("pg").Pool;
 
 const pool = new Pool({
-    user: "postgres",
-    password: "postgres",
+    user: "lakeuser",
+    password: "sys",
     database: "medas_datalake",
-    host: "localhost",
+    host: "mock-datalake-db",
     port: 5432
 });
 

@@ -1,4 +1,4 @@
-CREATE DATABASE medas_datalake;
+-- CREATE DATABASE IF NOT EXISTS medas_datalake;
 
 --\c medas_datalake
 

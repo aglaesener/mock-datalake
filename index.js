@@ -1,5 +1,7 @@
 const express = require("express");
 const app = express();
+
+// Connection pool basato su db.js:
 const pool = require("./db");
 
 app.use(express.json()) // => req.body
@@ -113,12 +115,8 @@ app.post("/documents", async(req,res) => {
         body_provenance = req.body["provenance"];
         body_clinical_data = req.body["clinicalData"];
 
-        body_pat_id = body_patient["id"];
-
         body_doc_id = req.body["id"];
         body_doc_source = req.body["source"];
-
-        body_pro_id = body_provenance["id"];
 
         console.log();
 
@@ -182,7 +180,7 @@ app.post("/documents", async(req,res) => {
         console.log(newProvenance.rows);
         console.log();
 
-        var id_provenance = await pool.query("SELECT id FROM Provenance WHERE provenance_id=$1", [body_pro_id]);
+        var id_provenance = await pool.query("SELECT id FROM Provenance WHERE provenance_id=$1", [body_provenance["id"]]);
         id_provenance = id_provenance.rows[0].id;
 
         // === CLINICAL DATA ===
