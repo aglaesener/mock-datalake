@@ -1,7 +1,7 @@
 version: "3.8"
 services:
   db:
-    image: andreaglaesener/mock-datalake-db:1.0
+    image: andreaglaesener/mock-datalake-db:1.1
     container_name: medas-datalake-db
     hostname: mock-datalake-db
     volumes:

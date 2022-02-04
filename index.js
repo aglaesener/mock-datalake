@@ -1,7 +1,46 @@
-const express = require("express");
-const app = express();
+const express = require("express")
+const app = express()
 
-const basicAuth = require('express-basic-auth');
+require('log-timestamp')
+const bp = require('body-parser')
+
+app.use(bp.json())
+app.use(bp.urlencoded({ extended: true }))
+app.use(express.json()) // => req.body
+
+const basicAuth = require('express-basic-auth')
+
+// Logs request content
+function logreq(req) {
+    const { rawHeaders, httpVersion, method, socket, url, body } = req
+    const { remoteAddress, remoteFamily } = socket
+
+    console.log("REQUEST [" + method + " " + url + "]:\n",
+        JSON.stringify({
+          rawHeaders,
+          httpVersion,
+          method,
+          remoteAddress,
+          remoteFamily,
+          url,
+          body
+        }, null, 4)
+      )
+}
+
+// Logs response
+function logres(req, res, body) {
+
+    res.json(body)
+    const { method, url } = req
+    const { statusCode, statusMessage } = res
+
+    console.log(
+        "RESPONSE [" + method + " " + url + "]: ",
+        statusCode, "-", statusMessage, '\n',
+        JSON.stringify(body, null, 4)
+      )
+}
  
 app.use(basicAuth({
     users: { lakeuser: 'sys' },
@@ -11,40 +50,51 @@ app.use(basicAuth({
 // Connection pool basato su db.js:
 const pool = require("./db");
 
-app.use(express.json()) // => req.body
-
 // ROUTES
 
 // create a patient
 app.post("/patients", async(req,res) => {
-    try{
-        // await
-        body_patient = req.body["patient"];
-        const newPatient = await pool.query("\
-        INSERT INTO Patient\
-        (first_name, last_name, patient_id, sex, birth_year_month)\
-        VALUES ($1, $2, $3, $4, $5) ON CONFLICT (patient_id) DO NOTHING RETURNING *",
-        [body_patient["firstName"],
-        body_patient["lastName"],
-        body_patient["id"],
-        body_patient["sex"],
-        body_patient["birthYearMonth"],]
-        );
 
-        res.json(newPatient.rows[0]);
+    logreq(req);
+    try {
+        const { firstName, lastName, id, sex, birthYear } = req.body["patient"]
+
+        var query = `INSERT INTO Patient \
+        (first_name, last_name, patient_id, sex, birth_year) \
+        VALUES \
+        ( \'${firstName}\', \'${lastName}\', \'${id}\', \'${sex}\', \'${birthYear}\') \
+        ON CONFLICT (patient_id) DO NOTHING RETURNING *`.replace(/\s+/g, ' ')
+        
+        console.log(" => Executing query:\n", query)
+
+        const newPatient = await pool.query(query, [])
+        returnResp = {
+            message: (newPatient.rowCount != 0) ? `Patient ${id} created!` : `Patient ${id} already exists.`,
+            data: newPatient.rows[0]
+        }
+        logres(req, res, returnResp)
     }
     catch(err){
         console.error(err.message)
     }
 })
 
+
 // get all patients
 app.get("/patients", async(req,res) => {
-    try {
-        const allPatients = await pool.query("\
-        SELECT * FROM Patient");
 
-        res.json(allPatients.rows);
+    logreq(req)
+    try {
+        var query = "SELECT * FROM Patient"
+
+        console.log(" => Executing query:\n", query)
+
+        const allPatients = await pool.query(query)
+        returnResp = {
+            message: (allPatients.rowCount != 0) ? `${allPatients.rowCount} patients found.` : `No patient found.`,
+            data: allPatients.rows
+        }
+        logres(req, res, returnResp)
     } catch (err) {
         console.error(err.message)        
     }
@@ -52,12 +102,19 @@ app.get("/patients", async(req,res) => {
 
 // get a patient
 app.get("/patients/:id", async(req,res) => {
+    logreq(req)
     try {
-        const {id} = req.params;
-        const patient = await pool.query("\
-        SELECT * FROM Patient WHERE patient_id = $1", [id]);
+        const { id } = req.params;
+        var query = `SELECT * FROM Patient WHERE patient_id = \'${id}\'`.replace(/\s+/g, ' ')
 
-        res.json(patient.rows[0]);
+        console.log(" => Executing query:\n", query)
+
+        const patient = await pool.query(query, [])
+        returnResp = {
+            message: (patient.rowCount != 0) ? null : `Patient ${id} not found.`,
+            data: patient.rows[0]
+        }
+        logres(req, res, returnResp)
     } catch (err) {
         console.error(err.message)
     }
@@ -65,38 +122,50 @@ app.get("/patients/:id", async(req,res) => {
 
 // update a patient
 app.put("/patients/:id", async(req,res) => {
+    logreq(req)
     try {
-        const {id} = req.params; // WHERE
-        const body_patient = req.body["patient"]; // SET
-        const updatePatient = await pool.query("\
-        UPDATE Patient SET\
-        first_name=$2, last_name=$3, patient_id=$4, sex=$5, birth_year_month=$6\
-        WHERE patient_id = $1",
-        [
-            id,
-            body_patient["firstName"],
-            body_patient["lastName"],
-            body_patient["id"],
-            body_patient["sex"],
-            body_patient["birthYearMonth"]
-        ]
-        );
-        res.json("Patient updated!");
+        where_id = req.params["id"]; // WHERE
+        const { firstName, lastName, id, sex, birthYear } = req.body["patient"]; // SET
+
+        var query = `UPDATE Patient SET \
+        first_name=\'${firstName}\', \
+        last_name=\'${lastName}\', \
+        patient_id=\'${id}\', \
+        sex=\'${sex}\', \
+        birth_year=\'${birthYear}\' \
+        WHERE patient_id=\'${where_id}\' RETURNING *`.replace(/\s+/g, ' ')
+
+        console.log(" => Executing query:\n", query)
+
+        const updatePatient = await pool.query(query, [])
+        returnResp = {
+            message: (updatePatient.rowCount != 0) ? `Patient ${where_id} updated!` : `Patient ${where_id} not found.`,
+            data: updatePatient.rows[0]
+        }
+        logres(req, res, returnResp)
     } catch (err) {
         console.error(err.message)
     }
 })
 
+
 // delete a patient
 app.delete("/patients/:id", async(req,res) => {
+    logreq(req)
     try {
-        const {id} = req.params; // WHERE
-        const deletePatient = await pool.query("\
-        DELETE FROM Patient \
-        WHERE patient_id = $1",
-        [id]
-        );
-        res.json("Patient deleted!");
+        const where_id = req.params["id"]; // WHERE
+
+        var query = `DELETE FROM Patient \
+        WHERE patient_id = \'${where_id}\' RETURNING *`.replace(/\s+/g, ' ');
+
+        console.log(" => Executing query:\n", query)
+
+        const deletePatient = await pool.query(query, [])
+        returnResp = {
+            message: (deletePatient.rowCount != 0) ? `Patient ${where_id} deleted!` : `Patient ${where_id} not found.`,
+            data: deletePatient.rows
+        }
+        logres(req, res, returnResp)
     } catch (err) {
         console.error(err.message)
     }
@@ -104,11 +173,15 @@ app.delete("/patients/:id", async(req,res) => {
 
 // delete all patients
 app.delete("/patients", async(req,res) => {
+    logreq(req)
     try {
-        const deletePatients = await pool.query("\
-        DELETE FROM Patient"
-        );
-        res.json("All patients deleted!");
+        var query = "DELETE FROM Patient RETURNING *"
+        const deletePatients = await pool.query(query, [])
+        returnResp = {
+            message: (deletePatients.rowCount != 0) ? `${deletePatients.rowCount} patients deleted!` : `No patient found.`,
+            data: deletePatients.rows
+        }
+        logres(req, res, returnResp)
     } catch (err) {
         console.error(err.message)
     }
@@ -116,59 +189,50 @@ app.delete("/patients", async(req,res) => {
 
 // create a document
 app.post("/documents", async(req,res) => {
-    try{
-        // await
-        body_patient = req.body["patient"];
-        body_provenance = req.body["provenance"];
-        body_clinical_data = req.body["clinicalData"];
-
-        body_doc_id = req.body["id"];
-        body_doc_source = req.body["source"];
-
-        console.log();
+    logreq(req)
+    try {
+        body_patient        = req.body["patient"];
+        body_provenance     = req.body["provenance"];
+        body_document       = req.body["document"];
+        body_clinical_data  = req.body["clinicalData"];
 
         // === PATIENT ===
         var new_patient_query = `\
         INSERT INTO Patient \
-        (first_name, last_name, patient_id, sex, birth_year_month) \
-        VALUES (\'${body_patient["firstName"]}\', \
+        (patient_id, first_name, last_name, birth_year, sex) \
+        VALUES (\'${body_patient["id"]}\', \
+                \'${body_patient["firstName"]}\', \
                 \'${body_patient["lastName"]}\', \
-                \'${body_patient["id"]}\', \
-                \'${body_patient["sex"]}\', \
-                \'${body_patient["birthYearMonth"]}\') \
+                \'${body_patient["birthYear"]}\', \
+                \'${body_patient["sex"]}\') \
         ON CONFLICT (patient_id) DO NOTHING RETURNING *;`.replace(/\s+/g, ' ');
 
-        console.log("new_patient_query:");
-        console.log(new_patient_query);
+        console.log(" => Executing query:\n", new_patient_query)
         
-        const newPatient = await pool.query(new_patient_query, []);
+        const newPatient = await pool.query(new_patient_query, [])
 
-        console.log("newPatient.rows:");
-        console.log(newPatient.rows);
-        console.log();
-
-        var id_patient = await pool.query("SELECT id FROM Patient WHERE patient_id=$1", [body_patient["id"]]);
-        id_patient = id_patient.rows[0].id;
+        var id_patient = await pool.query("SELECT id FROM Patient WHERE patient_id=$1", [body_patient["id"]])
+        id_patient = id_patient.rows[0].id
 
         // === DOCUMENT ===
 
         var new_document_query = `\
         INSERT INTO Document \
-        (document_id, patient, source) \
-        VALUES (\'${body_doc_id}\', ${id_patient}, \'${body_doc_source}\') \
-        ON CONFLICT (document_id) DO NOTHING RETURNING *;`.replace(/\s+/g, ' ');
+        (document_id, patient, source, type, date, time) \
+        VALUES (\'${body_document["id"]}\', \
+                \'${id_patient}\',
+                \'${body_document["source"]}\', \
+                \'${body_document["type"]}\', \
+                \'${body_document["date"]}\', \
+                \'${body_document["time"]}\') \
+        ON CONFLICT (document_id) DO NOTHING RETURNING *;`.replace(/\s+/g, ' ')
 
-        console.log("new_document_query:");
-        console.log(new_document_query);
+        console.log(" => Executing query:\n", new_document_query)
 
-        const newDocument = await pool.query(new_document_query, []);
+        const newDocument = await pool.query(new_document_query, [])
 
-        console.log("newDocument.rows:");
-        console.log(newDocument.rows);
-        console.log();
-
-        var id_document = await pool.query("SELECT id FROM Document WHERE document_id=$1", [body_doc_id]);
-        id_document = id_document.rows[0].id;
+        var id_document = await pool.query("SELECT id FROM Document WHERE document_id=$1", [body_document["id"]])
+        id_document = id_document.rows[0].id
 
         // === PROVENANCE ===
 
@@ -178,14 +242,9 @@ app.post("/documents", async(req,res) => {
         VALUES (\'${body_provenance["id"]}\') \
         ON CONFLICT (provenance_id) DO NOTHING RETURNING *;`.replace(/\s+/g, ' ');
 
-        console.log("new_provenance_query:");
-        console.log(new_provenance_query);
+        console.log(" => Executing query:\n", new_provenance_query)
 
         const newProvenance = await pool.query(new_provenance_query, []);
-
-        console.log("newProvenance.rows:");
-        console.log(newProvenance.rows);
-        console.log();
 
         var id_provenance = await pool.query("SELECT id FROM Provenance WHERE provenance_id=$1", [body_provenance["id"]]);
         id_provenance = id_provenance.rows[0].id;
@@ -236,19 +295,17 @@ app.post("/documents", async(req,res) => {
                     \'${cd_time_end}\', \'${cd_note}\') \
                     WHERE ClinicalData.clinical_data_id=\'${cd_id}\' RETURNING *;`.replace(/\s+/g, ' ');
             
-            console.log("new_clinicaldata_query:");
-            console.log(new_clinicaldata_query);
+            console.log(" => Executing query:\n", new_clinicaldata_query)
 
             const newClinicalData = await pool.query(new_clinicaldata_query, []);
-
-            console.log("newClinicalData.rows:");
-            console.log(newClinicalData.rows);
-            console.log();
-
             arr_clinicaldata.push(newClinicalData.rows[0]);
         }
-            
-        res.json(arr_clinicaldata);
+
+        returnResp = {
+            message: `${arr_clinicaldata.length} clinical data created!`,
+            data: arr_clinicaldata
+        }
+        logres(req, res, returnResp)
     }
     catch(err){
         console.error(err.message)
