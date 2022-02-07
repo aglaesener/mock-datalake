@@ -57,6 +57,7 @@ app.use(basicAuth({
 
 // Connection pool basato su db.js:
 const pool = require("./db");
+const { rows } = require("pg/lib/defaults")
 
 // ROUTES
 
@@ -219,28 +220,54 @@ app.post("/documents", async(req,res) => {
         
         const newPatient = await pool.query(new_patient_query, [])
 
-        var id_patient = await pool.query("SELECT id FROM Patient WHERE patient_id=$1", [body_patient["id"]])
+        select_patient_query = `SELECT id FROM Patient WHERE patient_id=\'${body_patient["id"]}\';`
+
+        var id_patient = await pool.query(select_patient_query)
         id_patient = id_patient.rows[0].id
 
         // === DOCUMENT ===
 
-        var new_document_query = `\
-        INSERT INTO Document \
-        (document_id, patient, source, type, date, time) \
-        VALUES (\'${body_document["id"]}\', \
-                \'${id_patient}\',
-                \'${body_document["source"]}\', \
-                \'${body_document["type"]}\', \
-                \'${body_document["date"]}\', \
-                \'${body_document["time"]}\') \
-        ON CONFLICT (document_id) DO NOTHING RETURNING *;`.replace(/\s+/g, ' ')
+        if (body_document) { // se body_document esiste
+
+            bd_id       = replaceUndefined(body_document["id"])
+            bd_source   = replaceUndefined(body_document["source"])
+            bd_type     = replaceUndefined(body_document["type"])
+            bd_date     = body_document["date"]
+            if (!moment(bd_date).isValid()) {
+                bd_date = '1000-01-01'
+            }
+            bd_time     = body_document["time"]
+            if (!moment(bd_time, "hh:mm:ss").isValid()) {
+                bd_time = '00:00:00'
+            }
+
+
+            var new_document_query = `\
+            INSERT INTO Document \
+            (document_id, patient, source, type, date, time) \
+            VALUES (\'${bd_id}\', \
+                    \'${id_patient}\',
+                    \'${bd_source}\', \
+                    \'${bd_type}\', \
+                    \'${bd_date}\', \
+                    \'${bd_time}\') \
+            ON CONFLICT (document_id) DO NOTHING RETURNING *;`.replace(/\s+/g, ' ')
+
+            console.log(" => Executing query:\n", new_document_query)
+
+            const newDocument = await pool.query(new_document_query, [])
+
+        }
+        else {
+            new_document_query = `INSERT INTO Document \
+            (patient) VALUES (\'${id_patient}\') RETURNING *;`
+        }
 
         console.log(" => Executing query:\n", new_document_query)
 
         const newDocument = await pool.query(new_document_query, [])
 
-        var id_document = await pool.query("SELECT id FROM Document WHERE document_id=$1", [body_document["id"]])
-        id_document = id_document.rows[0].id
+        var id_document = newDocument.rows[0].id
 
         // === PROVENANCE ===
 
@@ -270,7 +297,7 @@ app.post("/documents", async(req,res) => {
             cd_unit            = replaceUndefined(data["unit"]);
             cd_coding_system   = replaceUndefined(data["codingSystem"]);
             cd_code            = replaceUndefined(data["code"]);
-            cd_date            = data["date"];
+            cd_date            = replaceUndefined(data["date"]);
             if (!moment(cd_date).isValid()) {
                 cd_date = '1000-01-01'
             }
