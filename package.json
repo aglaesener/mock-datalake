@@ -14,7 +14,9 @@
     "express-basic-auth": "^1.2.0",
     "express-mung": "^0.5.1",
     "log-timestamp": "^0.3.0",
+    "moment": "^2.29.1",
     "nodemon": "^2.0.15",
-    "pg": "^8.7.1"
+    "pg": "^8.7.1",
+    "xdate": "^0.8.2"
   }
 }

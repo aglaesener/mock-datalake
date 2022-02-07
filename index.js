@@ -3,12 +3,20 @@ const app = express()
 
 require('log-timestamp')
 const bp = require('body-parser')
+const moment = require('moment')
 
 app.use(bp.json())
 app.use(bp.urlencoded({ extended: true }))
 app.use(express.json()) // => req.body
 
 const basicAuth = require('express-basic-auth')
+
+function replaceUndefined(vl){
+    if(typeof(vl) === "undefined"){
+        return ""; // return "" as replace, and end function execution
+    } 
+    return vl; // if the above state was false, functions continues and return original value
+};
 
 // Logs request content
 function logreq(req) {
@@ -255,21 +263,27 @@ app.post("/documents", async(req,res) => {
         for (data of body_clinical_data) {
 
             cd_id              = data["id"];
-            cd_doc_type        = data["docType"];
-            cd_type            = data["type"];
-            cd_label           = data["label"];
-            cd_value           = data["value"];
-            cd_unit            = data["unit"];
-            cd_coding_system   = data["codingSystem"];
-            cd_code            = data["code"];
+            cd_doc_type        = replaceUndefined(data["docType"]);
+            cd_type            = replaceUndefined(data["type"]);
+            cd_label           = replaceUndefined(data["label"]);
+            cd_value           = replaceUndefined(data["value"]);
+            cd_unit            = replaceUndefined(data["unit"]);
+            cd_coding_system   = replaceUndefined(data["codingSystem"]);
+            cd_code            = replaceUndefined(data["code"]);
             cd_date            = data["date"];
+            if (!moment(cd_date).isValid()) {
+                cd_date = '1000-01-01'
+            }
             cd_time            = data["time"];
-            cd_dose            = data["dose"];
-            cd_admin_route     = data["adminRoute"];
-            cd_daily_frequence = data["dailyFrequence"];
-            cd_date_end        = data["dateEnd"];
-            cd_time_end        = data["timeEnd"];
-            cd_note            = data["note"];
+            if (!moment(cd_time, "hh:mm:ss").isValid()) {
+                cd_time = '00:00:00'
+            }
+            cd_dose            = replaceUndefined(data["dose"]);
+            cd_admin_route     = replaceUndefined(data["adminRoute"]);
+            cd_daily_frequence = replaceUndefined(data["dailyFrequence"]);
+            cd_date_end        = replaceUndefined(data["dateEnd"]);
+            cd_time_end        = replaceUndefined(data["timeEnd"]);
+            cd_note            = replaceUndefined(data["note"]);
 
             var new_clinicaldata_query = `INSERT INTO ClinicalData \
                 (patient, document, provenance, clinical_data_id,\

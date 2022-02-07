@@ -39,12 +39,12 @@ CREATE TABLE IF NOT EXISTS ClinicalData (
     unit TEXT,
     coding_system TEXT,
     code TEXT,
-    date DATE,
-    time TIME,
+    date DATE default '1000-01-01',
+    time TIME default '00:00:00',
     dose TEXT,
     admin_route TEXT,
     daily_frequence TEXT,
-    date_end DATE,
-    time_end TIME,
+    date_end TEXT,
+    time_end TEXT,
     note TEXT
 );
