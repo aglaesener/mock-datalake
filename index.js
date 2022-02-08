@@ -62,7 +62,7 @@ const { rows } = require("pg/lib/defaults")
 // ROUTES
 
 // create a patient
-app.post("/patients", async(req,res) => {
+app.post("/central/patients", async(req,res) => {
 
     logreq(req);
     try {
@@ -90,7 +90,7 @@ app.post("/patients", async(req,res) => {
 
 
 // get all patients
-app.get("/patients", async(req,res) => {
+app.get("/central/patients", async(req,res) => {
 
     logreq(req)
     try {
@@ -110,7 +110,7 @@ app.get("/patients", async(req,res) => {
 })
 
 // get a patient
-app.get("/patients/:id", async(req,res) => {
+app.get("/central/patients/:id", async(req,res) => {
     logreq(req)
     try {
         const { id } = req.params;
@@ -130,7 +130,7 @@ app.get("/patients/:id", async(req,res) => {
 })
 
 // update a patient
-app.put("/patients/:id", async(req,res) => {
+app.put("/central/patients/:id", async(req,res) => {
     logreq(req)
     try {
         where_id = req.params["id"]; // WHERE
@@ -159,7 +159,7 @@ app.put("/patients/:id", async(req,res) => {
 
 
 // delete a patient
-app.delete("/patients/:id", async(req,res) => {
+app.delete("/central/patients/:id", async(req,res) => {
     logreq(req)
     try {
         const where_id = req.params["id"]; // WHERE
@@ -181,7 +181,7 @@ app.delete("/patients/:id", async(req,res) => {
 })
 
 // delete all patients
-app.delete("/patients", async(req,res) => {
+app.delete("/central/patients", async(req,res) => {
     logreq(req)
     try {
         var query = "DELETE FROM Patient RETURNING *"
@@ -197,7 +197,7 @@ app.delete("/patients", async(req,res) => {
 })
 
 // create a document
-app.post("/documents", async(req,res) => {
+app.post("/central/writeData", async(req,res) => {
     logreq(req)
     try {
         body_patient        = req.body["patient"];
@@ -250,8 +250,7 @@ app.post("/documents", async(req,res) => {
                     \'${bd_source}\', \
                     \'${bd_type}\', \
                     \'${bd_date}\', \
-                    \'${bd_time}\') \
-            ON CONFLICT (document_id) DO NOTHING RETURNING *;`.replace(/\s+/g, ' ')
+                    \'${bd_time}\') RETURNING *;`.replace(/\s+/g, ' ')
 
             console.log(" => Executing query:\n", new_document_query)
 
