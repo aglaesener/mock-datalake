@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS Patient (
 CREATE TABLE IF NOT EXISTS Document (
     id SERIAL PRIMARY KEY,
     patient INT NOT NULL REFERENCES Patient (id) ON DELETE CASCADE,
-    document_id TEXT, -- UNIQUE NOT NULL,
+    document_id TEXT UNIQUE NOT NULL,
     source TEXT,
     type TEXT,
     date TEXT,
