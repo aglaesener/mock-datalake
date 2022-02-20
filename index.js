@@ -165,7 +165,7 @@ app.delete("/central/patients/:id", async(req,res) => {
         const where_id = req.params["id"]; // WHERE
 
         var query = `DELETE FROM Patient \
-        WHERE patient_id = \'${where_id}\' RETURNING *`.replace(/\s+/g, ' ');
+        WHERE patient_id = \'${where_id}\' RETURNING *;`.replace(/\s+/g, ' ');
 
         console.log(" => Executing query:\n", query)
 
@@ -184,7 +184,7 @@ app.delete("/central/patients/:id", async(req,res) => {
 app.delete("/central/patients", async(req,res) => {
     logreq(req)
     try {
-        var query = "DELETE FROM Patient RETURNING *"
+        var query = "DELETE FROM Patient RETURNING *;"
         const deletePatients = await pool.query(query, [])
         returnResp = {
             message: (deletePatients.rowCount != 0) ? `${deletePatients.rowCount} patients deleted!` : `No patient found.`,
@@ -250,11 +250,15 @@ app.post("/central/writeData", async(req,res) => {
                     \'${bd_source}\', \
                     \'${bd_type}\', \
                     \'${bd_date}\', \
-                    \'${bd_time}\') RETURNING *;`.replace(/\s+/g, ' ')
-
-            console.log(" => Executing query:\n", new_document_query)
-
-            const newDocument = await pool.query(new_document_query, [])
+                    \'${bd_time}\') \
+            on conflict (document_id) \
+            DO UPDATE SET (patient, source, type, date, time) \
+            = ( \'${id_patient}\',
+                \'${bd_source}\', \
+                \'${bd_type}\', \
+                \'${bd_date}\', \
+                \'${bd_time}\') \
+            RETURNING *;`.replace(/\s+/g, ' ')
 
         }
         else {
@@ -286,7 +290,11 @@ app.post("/central/writeData", async(req,res) => {
         // === CLINICAL DATA ===
 
         var arr_clinicaldata = [];
+        let i=0
         for (data of body_clinical_data) {
+
+            console.log("\n\n  --- PING!! ---")
+            console.log("i =", i, "\n\n")
 
             cd_id              = data["id"];
             cd_doc_type        = replaceUndefined(data["docType"]);
@@ -337,8 +345,9 @@ app.post("/central/writeData", async(req,res) => {
             
             console.log(" => Executing query:\n", new_clinicaldata_query)
 
-            const newClinicalData = await pool.query(new_clinicaldata_query, []);
-            arr_clinicaldata.push(newClinicalData.rows[0]);
+            const newClinicalData = await pool.query(new_clinicaldata_query, [])
+            arr_clinicaldata.push(newClinicalData.rows[0])
+            i = i+1
         }
 
         returnResp = {
