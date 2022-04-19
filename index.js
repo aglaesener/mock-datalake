@@ -62,7 +62,7 @@ const { rows } = require("pg/lib/defaults")
 // ROUTES
 
 // create a patient
-app.post("/central/patients", async(req,res) => {
+app.post("/datalake/patients", async(req,res) => {
 
     logreq(req);
     try {
@@ -90,7 +90,7 @@ app.post("/central/patients", async(req,res) => {
 
 
 // get all patients
-app.get("/central/patients", async(req,res) => {
+app.get("/datalake/patients", async(req,res) => {
 
     logreq(req)
     try {
@@ -110,7 +110,7 @@ app.get("/central/patients", async(req,res) => {
 })
 
 // get a patient
-app.get("/central/patients/:id", async(req,res) => {
+app.get("/datalake/patients/:id", async(req,res) => {
     logreq(req)
     try {
         const { id } = req.params;
@@ -130,7 +130,7 @@ app.get("/central/patients/:id", async(req,res) => {
 })
 
 // update a patient
-app.put("/central/patients/:id", async(req,res) => {
+app.put("/datalake/patients/:id", async(req,res) => {
     logreq(req)
     try {
         where_id = req.params["id"]; // WHERE
@@ -159,7 +159,7 @@ app.put("/central/patients/:id", async(req,res) => {
 
 
 // delete a patient
-app.delete("/central/patients/:id", async(req,res) => {
+app.delete("/datalake/patients/:id", async(req,res) => {
     logreq(req)
     try {
         const where_id = req.params["id"]; // WHERE
@@ -181,7 +181,7 @@ app.delete("/central/patients/:id", async(req,res) => {
 })
 
 // delete all patients
-app.delete("/central/patients", async(req,res) => {
+app.delete("/datalake/patients", async(req,res) => {
     logreq(req)
     try {
         var query = "DELETE FROM Patient RETURNING *;"
@@ -197,7 +197,7 @@ app.delete("/central/patients", async(req,res) => {
 })
 
 // create a document
-app.post("/central/writeData", async(req,res) => {
+app.post("/datalake/storeData", async(req,res) => {
     logreq(req)
     try {
         body_patient        = req.body["patient"];
@@ -290,11 +290,7 @@ app.post("/central/writeData", async(req,res) => {
         // === CLINICAL DATA ===
 
         var arr_clinicaldata = [];
-        let i=0
         for (data of body_clinical_data) {
-
-            console.log("\n\n  --- PING!! ---")
-            console.log("i =", i, "\n\n")
 
             cd_id              = data["id"];
             cd_doc_type        = replaceUndefined(data["docType"]);
@@ -347,7 +343,6 @@ app.post("/central/writeData", async(req,res) => {
 
             const newClinicalData = await pool.query(new_clinicaldata_query, [])
             arr_clinicaldata.push(newClinicalData.rows[0])
-            i = i+1
         }
 
         returnResp = {
