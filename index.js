@@ -1,6 +1,9 @@
 const express = require("express")
 const app = express()
 
+const port = process.env.PORT || 5001;
+const portMessage = process.env.PORT ? '' : ' (default)';
+
 require('log-timestamp')
 const bp = require('body-parser')
 const moment = require('moment')
@@ -356,6 +359,6 @@ app.post("/datalake/storeData", async(req,res) => {
     }
 })
 
-app.listen(5000, () => {
-    console.log("server listening on port 5000");
+app.listen(port, () => {
+    console.log(`Server listening on port ${port}${portMessage}`);
 });
