@@ -8,6 +8,8 @@ services:
       - pgdata:/var/lib/postgresql/data
     ports:
       - '5432:5432'
+    networks:
+      - mock-datalake
   api:
     image: andreaglaesener/mock-datalake-api:1.4
     container_name: medas-datalake-api
@@ -18,7 +20,13 @@ services:
       - '5005:5005'
     environment:
       - PORT=5005
+    networks:
+      - mock-datalake
 
 volumes:
   pgdata:
     external: false
+
+networks:
+  mock-datalake:
+    driver: bridge
