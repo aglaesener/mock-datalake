@@ -17,9 +17,9 @@ services:
     depends_on:
       - db
     ports:
-      - '5005:5005'
+      - '5000:5000'
     environment:
-      - PORT=5005
+      - PORT=5000
     networks:
       - mock-datalake
 
